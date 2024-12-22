@@ -1,4 +1,4 @@
-# [ascii-username-generator](https://github.com/hihipy/ascii-username-generator)
+# ascii-username-generator
 
 A Python app with a modern GUI for generating unique, ASCII-compliant usernames in multiple languages using WordNet. Features include real-time logging, customizable formatting, and clipboard integration.
 
