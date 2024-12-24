@@ -57,47 +57,42 @@ LOGGER.addHandler(STREAM_HANDLER)
 class TextHandler(logging.Handler):
     """
     Custom logging handler that redirects log messages to a Tkinter Text widget.
-    
-    This handler enables real-time logging display in the GUI interface.
-    
-    Args:
-        text_widget (tk.Text): The Text widget where logs will be displayed
     """
 
-    def __init__(self, text_widget: tk.Text):
+    def __init__(self, text_widget: tk.Text) -> None:
+        """
+        Initialize the TextHandler with the target Text widget.
+
+        Args:
+            text_widget (tk.Text): The Text widget where logs will be displayed.
+        """
         super().__init__()
         self.text_widget = text_widget
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         """
         Process and display a log record in the Text widget.
-        
+
         Args:
-            record: The log record to be displayed
+            record (logging.LogRecord): The log record to be displayed.
         """
         msg = self.format(record)
         self.text_widget.insert(tk.END, msg + '\n')
-        self.text_widget.see(tk.END)  # Ensure latest log is visible
+        self.text_widget.see(tk.END)  # Ensure the latest log is visible
 
 
 class UsernameGenerator:
     """
     GUI-based username generator supporting multiple languages and customization options.
-    
-    Features:
-    - Multi-language support using WordNet
-    - Case styling options (lowercase, uppercase, capitalized)
-    - Optional numeric suffixes
-    - Real-time logging display
-    - Clipboard integration
-    - ASCII compliance checking
-    - Profanity filtering
-    
-    Args:
-        root (tk.Tk): The root Tkinter window
     """
 
     def __init__(self, root: tk.Tk) -> None:
+        """
+        Initialize the username generator application.
+
+        Args:
+            root (tk.Tk): The root Tkinter window.
+        """
         LOGGER.info("Initializing UsernameGenerator.")
         self.root = root
         self.root.title("ASCII Username Generator")
@@ -108,14 +103,14 @@ class UsernameGenerator:
         self.root.columnconfigure(0, weight=1)
 
         # Initialize style control variables
-        self.case_var = tk.StringVar(value="lowercase")  # Case styling option
-        self.number_var = tk.StringVar(value="none")     # Numeric suffix option
+        self.case_var: tk.StringVar = tk.StringVar(value="lowercase")
+        self.number_var: tk.StringVar = tk.StringVar(value="none")
 
         LOGGER.debug("Ensuring required NLTK data is available...")
         self.ensure_nltk_data()
 
         # Define supported languages with their codes and display names
-        self.language_names = {
+        self.language_names: dict[str, str] = {
             "eng": "English",
             "spa": "Spanish",
             "fra": "French",
@@ -136,7 +131,7 @@ class UsernameGenerator:
             "dan": "Danish",
             "lit": "Lithuanian"
         }
-        self.language_codes = list(self.language_names.keys())
+        self.language_codes: list[str] = list(self.language_names.keys())
 
         # Initialize profanity filter
         profanity.load_censor_words()
@@ -147,20 +142,14 @@ class UsernameGenerator:
     def ensure_nltk_data(self) -> None:
         """
         Ensure required NLTK data resources are available.
-        
         Downloads missing resources if necessary and configures NLTK data path.
-        Resources checked:
-        - WordNet
-        - Open Multilingual WordNet
         """
-        # Set up NLTK data directory in user's home
-        nltk_data_path = os.path.join(os.path.expanduser("~"), "nltk_data")
+        nltk_data_path: str = os.path.join(os.path.expanduser("~"), "nltk_data")
         if nltk_data_path not in nltk.data.path:
             nltk.data.path.append(nltk_data_path)
             LOGGER.info("Added NLTK data path: %s", nltk_data_path)
 
-        # Check and download required resources
-        resources = {"wordnet": "corpora/wordnet", "omw-1.4": "corpora/omw-1.4"}
+        resources: dict[str, str] = {"wordnet": "corpora/wordnet", "omw-1.4": "corpora/omw-1.4"}
         for resource, path in resources.items():
             try:
                 nltk.data.find(path)
@@ -172,17 +161,8 @@ class UsernameGenerator:
     def create_widgets(self) -> None:
         """
         Create and arrange all GUI components.
-        
-        Sets up:
-        - Main frame with padding
-        - Case styling options
-        - Number suffix options
-        - Generation button
-        - Username display table
-        - Log display window
         """
-        # Create main container frame
-        main_frame = ttk.Frame(self.root, padding=10)
+        main_frame: ttk.Frame = ttk.Frame(self.root, padding=10)
         main_frame.grid(row=0, column=0, sticky="nsew")
 
         # Configure frame resizing
@@ -190,7 +170,7 @@ class UsernameGenerator:
         main_frame.columnconfigure(0, weight=1)
 
         # Setup case styling options
-        case_frame = ttk.LabelFrame(main_frame, text="Username Case")
+        case_frame: ttk.LabelFrame = ttk.LabelFrame(main_frame, text="Username Case")
         case_frame.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
         for value, text in [
             ("capitalize", "Capitalize"),
@@ -205,7 +185,7 @@ class UsernameGenerator:
             ).pack(anchor=tk.W)
 
         # Setup number style options
-        num_frame = ttk.LabelFrame(main_frame, text="Number Style")
+        num_frame: ttk.LabelFrame = ttk.LabelFrame(main_frame, text="Number Style")
         num_frame.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
         for value, text in [
             ("none", "None"),
@@ -221,7 +201,7 @@ class UsernameGenerator:
             ).pack(anchor=tk.W)
 
         # Add generation button
-        gen_button = ttk.Button(
+        gen_button: ttk.Button = ttk.Button(
             main_frame,
             text="Generate Usernames",
             command=self.start_generation_thread
@@ -231,7 +211,10 @@ class UsernameGenerator:
         # Add informational label
         ttk.Label(
             main_frame,
-            text="Languages are pre-defined; some English words may appear in other languages.",
+            text=(
+                "Languages are pre-defined; some English words "
+                "may appear in other languages."
+            ),
             font=("Helvetica", 10)
         ).grid(row=2, column=0, columnspan=2, pady=5)
 
@@ -242,14 +225,9 @@ class UsernameGenerator:
     def setup_treeview(self, parent_frame: ttk.Frame) -> None:
         """
         Create and configure the Treeview widget for displaying usernames.
-        
+
         Args:
-            parent_frame: The parent frame to contain the Treeview
-        
-        Features:
-        - Two columns: username and language
-        - Vertical scrollbar
-        - Click-to-copy functionality
+            parent_frame (ttk.Frame): The parent frame to contain the Treeview.
         """
         table_frame = ttk.Frame(parent_frame)
         table_frame.grid(row=5, column=0, columnspan=2, sticky="nsew")
@@ -285,14 +263,9 @@ class UsernameGenerator:
     def setup_log_window(self, parent_frame: ttk.Frame) -> None:
         """
         Create and configure the log display window.
-        
+
         Args:
-            parent_frame: The parent frame to contain the log window
-        
-        Features:
-        - Terminal-like appearance
-        - Auto-scrolling
-        - Vertical scrollbar
+            parent_frame (ttk.Frame): The parent frame to contain the log window.
         """
         log_frame = ttk.Frame(parent_frame)
         log_frame.grid(row=6, column=0, columnspan=2, sticky="nsew")
@@ -337,9 +310,6 @@ class UsernameGenerator:
     def generate_usernames(self) -> None:
         """
         Generate and display a set of random usernames.
-        
-        Generates 40 usernames with real-time progress logging.
-        Each username is generated using a random supported language.
         """
         LOGGER.info("Starting username generation...")
         self.log_output.insert(tk.END, "Generating usernames...\n")
@@ -352,19 +322,16 @@ class UsernameGenerator:
         usernames = []
         total = 40  # Number of usernames to generate
 
-        # Generate usernames with progress logging
         for i in range(total):
             message = f"Generating username {i + 1}/{total}..."
             LOGGER.info(message)
             self.log_output.insert(tk.END, f"{message}\n")
             self.log_output.see(tk.END)
 
-            # Generate username in random language
             lang_code = random.choice(self.language_codes)
             username = self.generate_ascii_username(lang_code)
             usernames.append((username, self.language_names.get(lang_code, lang_code)))
 
-        # Sort and display usernames
         usernames.sort(key=lambda x: x[0])
         for username, lang_name in usernames:
             self.tree.insert("", "end", values=(username, lang_name))
@@ -376,12 +343,12 @@ class UsernameGenerator:
     def generate_ascii_username(self, lang_code: str) -> str:
         """
         Generate a single ASCII-compliant username for specified language.
-        
+
         Args:
-            lang_code: The language code to use for word selection
-        
+            lang_code (str): The language code to use for word selection.
+
         Returns:
-            A formatted username string
+            str: A formatted username string.
         """
         words = self.get_words(lang_code)
         valid_words = [word for word in words if self.is_valid_word(word)]
@@ -390,12 +357,12 @@ class UsernameGenerator:
     def get_words(self, lang_code: str) -> list[str]:
         """
         Retrieve valid words from WordNet for specified language.
-        
+
         Args:
-            lang_code: The language code to fetch words for
-        
+            lang_code (str): The language code to fetch words for.
+
         Returns:
-            List of valid words for the specified language
+            list[str]: List of valid words for the specified language.
         """
         words = []
         try:
@@ -411,31 +378,26 @@ class UsernameGenerator:
     def is_valid_word(self, word: str, min_len: int = 3) -> bool:
         """
         Validate word for username generation.
-        
+
         Args:
-            word: The word to validate
-            min_len: Minimum acceptable word length
-        
+            word (str): The word to validate.
+            min_len (int): Minimum acceptable word length.
+
         Returns:
-            True if word meets all criteria, False otherwise
-        
-        Checks:
-        - ASCII compliance
-        - Minimum length
+            bool: True if word meets all criteria, False otherwise.
         """
         return all(ord(c) < 128 for c in word) and len(word) >= min_len
 
     def finalize_username(self, word: str) -> str:
         """
         Apply final formatting to username.
-        
+
         Args:
-            word: Base word to format into username
-        
+            word (str): Base word to format into username.
+
         Returns:
-            Formatted username string with applied case and optional number suffix
+            str: Formatted username string with applied case and optional number suffix.
         """
-        # Apply case formatting based on user selection
         case = self.case_var.get()
         if case == "lowercase":
             word = word.lower()
@@ -444,7 +406,6 @@ class UsernameGenerator:
         elif case == "capitalize":
             word = word.capitalize()
 
-        # Add numeric suffix based on user selection
         style = self.number_var.get()
         if style == "1digit":
             word += str(random.randint(0, 9))
@@ -457,11 +418,9 @@ class UsernameGenerator:
     def on_username_click(self, event: tk.Event) -> None:
         """
         Handle username click event by copying to clipboard.
-        
+
         Args:
-            event: The Tkinter event object containing click information
-            
-        Copies the clicked username to system clipboard and logs the action.
+            event (tk.Event): The Tkinter event object containing click information.
         """
         row_id = self.tree.identify_row(event.y)
         if row_id:
@@ -475,8 +434,6 @@ class UsernameGenerator:
 def main() -> None:
     """
     Main entry point for the application.
-    
-    Initializes the GUI and handles critical errors with user notification.
     """
     try:
         root = tk.Tk()
