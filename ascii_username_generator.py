@@ -28,30 +28,30 @@ warnings.filterwarnings(
 )
 
 # Configure logging system with both file and stream handlers
-LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Setup file handler for detailed logging
-FILE_HANDLER = logging.FileHandler(
-    "username_generator.log",
+file_handler = logging.FileHandler(
+    "ascii_username_generator.log",
     mode="a",
     encoding="utf-8"
 )
-FILE_HANDLER.setLevel(logging.DEBUG)
-FILE_FORMATTER = logging.Formatter(
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter(
     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-FILE_HANDLER.setFormatter(FILE_FORMATTER)
+file_handler.setFormatter(file_formatter)
 
 # Setup stream handler for console output
-STREAM_HANDLER = logging.StreamHandler(sys.stdout)
-STREAM_HANDLER.setLevel(logging.INFO)
-STREAM_FORMATTER = logging.Formatter("%(levelname)s - %(message)s")
-STREAM_HANDLER.setFormatter(STREAM_FORMATTER)
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.INFO)
+stream_formatter = logging.Formatter("%(levelname)s - %(message)s")
+stream_handler.setFormatter(stream_formatter)
 
 # Add handlers to logger
-LOGGER.addHandler(FILE_HANDLER)
-LOGGER.addHandler(STREAM_HANDLER)
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 
 class TextHandler(logging.Handler):
@@ -93,7 +93,7 @@ class UsernameGenerator:
         Args:
             root (tk.Tk): The root Tkinter window.
         """
-        LOGGER.info("Initializing UsernameGenerator.")
+        logger.info("Initializing UsernameGenerator.")
         self.root = root
         self.root.title("ASCII Username Generator")
         self.root.geometry("600x800")
@@ -106,7 +106,7 @@ class UsernameGenerator:
         self.case_var: tk.StringVar = tk.StringVar(value="lowercase")
         self.number_var: tk.StringVar = tk.StringVar(value="none")
 
-        LOGGER.debug("Ensuring required NLTK data is available...")
+        logger.debug("Ensuring required NLTK data is available...")
         self.ensure_nltk_data()
 
         # Define supported languages with their codes and display names
@@ -147,15 +147,15 @@ class UsernameGenerator:
         nltk_data_path: str = os.path.join(os.path.expanduser("~"), "nltk_data")
         if nltk_data_path not in nltk.data.path:
             nltk.data.path.append(nltk_data_path)
-            LOGGER.info("Added NLTK data path: %s", nltk_data_path)
+            logger.info("Added NLTK data path: %s", nltk_data_path)
 
         resources: dict[str, str] = {"wordnet": "corpora/wordnet", "omw-1.4": "corpora/omw-1.4"}
         for resource, path in resources.items():
             try:
                 nltk.data.find(path)
-                LOGGER.info("Resource '%s' already downloaded.", resource)
+                logger.info("Resource '%s' already downloaded.", resource)
             except LookupError:
-                LOGGER.info("Downloading missing resource: %s", resource)
+                logger.info("Downloading missing resource: %s", resource)
                 nltk.download(resource, download_dir=nltk_data_path)
 
     def create_widgets(self) -> None:
@@ -299,7 +299,7 @@ class UsernameGenerator:
         log_handler.setFormatter(
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         )
-        LOGGER.addHandler(log_handler)
+        logger.addHandler(log_handler)
 
     def start_generation_thread(self) -> None:
         """
@@ -311,7 +311,7 @@ class UsernameGenerator:
         """
         Generate and display a set of random usernames.
         """
-        LOGGER.info("Starting username generation...")
+        logger.info("Starting username generation...")
         self.log_output.insert(tk.END, "Generating usernames...\n")
         self.log_output.see(tk.END)
 
@@ -324,7 +324,7 @@ class UsernameGenerator:
 
         for i in range(total):
             message = f"Generating username {i + 1}/{total}..."
-            LOGGER.info(message)
+            logger.info(message)
             self.log_output.insert(tk.END, f"{message}\n")
             self.log_output.see(tk.END)
 
@@ -336,7 +336,7 @@ class UsernameGenerator:
         for username, lang_name in usernames:
             self.tree.insert("", "end", values=(username, lang_name))
 
-        LOGGER.info("Username generation completed successfully.")
+        logger.info("Username generation completed successfully.")
         self.log_output.insert(tk.END, "Username generation completed successfully.\n")
         self.log_output.see(tk.END)
 
@@ -372,7 +372,7 @@ class UsernameGenerator:
                     if word.isalnum():
                         words.append(word)
         except Exception as exc:
-            LOGGER.warning("Failed to fetch words for '%s': %s", lang_code, exc)
+            logger.warning("Failed to fetch words for '%s': %s", lang_code, exc)
         return words
 
     def is_valid_word(self, word: str, min_len: int = 3) -> bool:
@@ -428,7 +428,7 @@ class UsernameGenerator:
             if values:
                 username = values[0]
                 pyperclip.copy(username)
-                LOGGER.info("Copied username: %s", username)
+                logger.info("Copied username: %s", username)
 
 
 def main() -> None:
@@ -440,7 +440,7 @@ def main() -> None:
         UsernameGenerator(root)
         root.mainloop()
     except Exception as exc:
-        LOGGER.critical("Application failed to start", exc_info=True)
+        logger.critical("Application failed to start", exc_info=True)
         messagebox.showerror("Critical Error", str(exc))
 
 

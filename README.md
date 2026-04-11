@@ -28,12 +28,12 @@ pip install nltk better-profanity pyperclip
 1. Clone the repository:
 ```bash
 git clone https://github.com/hihipy/ascii-username-generator.git
-cd username-generator
+cd ascii-username-generator
 ```
 
 2. Run the script:
 ```bash
-python username_generator.py
+python ascii_username_generator.py
 ```
 
 ## Usage
