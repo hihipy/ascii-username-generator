@@ -1,4 +1,4 @@
-# ASCII Username Generator
+# ascii-username-generator
 
 A Python app with a GUI for generating unique, ASCII-compliant usernames in multiple languages using WordNet. Features real-time logging, customizable formatting, and clipboard integration.
 
