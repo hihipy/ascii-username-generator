@@ -14,6 +14,7 @@ import warnings
 import tkinter as tk
 from tkinter import ttk, messagebox
 from threading import Thread
+from typing import cast
 
 import nltk
 import pyperclip
@@ -93,6 +94,13 @@ class UsernameGenerator:
 		self.count_var: tk.StringVar = tk.StringVar(value="")
 		self.log_var: tk.BooleanVar = tk.BooleanVar(value=False)  # File logging off by default
 
+		# Widget references — cast(T, None) satisfies the type checker without | None cascades;
+		# all three are fully assigned during create_widgets() before any other code runs.
+		self.tree: ttk.Treeview = cast(ttk.Treeview, cast(object, None))
+		self.log_output: tk.Text = cast(tk.Text, cast(object, None))
+		self.log_frame: ttk.Frame = cast(ttk.Frame, cast(object, None))
+		self._file_handler: logging.FileHandler | None = None
+
 		logger.debug("Ensuring required NLTK data is available...")
 		self.ensure_nltk_data()
 
@@ -126,7 +134,8 @@ class UsernameGenerator:
 		# Setup GUI components
 		self.create_widgets()
 
-	def ensure_nltk_data(self) -> None:
+	@staticmethod
+	def ensure_nltk_data() -> None:
 		"""
 		Ensure required NLTK data resources are available.
 		Downloads missing resources if necessary and configures NLTK data path.
@@ -158,7 +167,7 @@ class UsernameGenerator:
 
 		# Setup case styling options
 		case_frame: ttk.LabelFrame = ttk.LabelFrame(main_frame, text="Username Case")
-		case_frame.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+		case_frame.grid(row=0, column=0, sticky="w", padx=5, pady=5)
 		for value, text in [
 			("capitalize", "Capitalize"),
 			("lowercase", "all lowercase"),
@@ -169,11 +178,11 @@ class UsernameGenerator:
 				text=text,
 				variable=self.case_var,
 				value=value
-			).pack(anchor=tk.W)
+			).pack(anchor="w")
 
 		# Setup number style options
 		num_frame: ttk.LabelFrame = ttk.LabelFrame(main_frame, text="Number Style")
-		num_frame.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+		num_frame.grid(row=0, column=1, sticky="w", padx=5, pady=5)
 		for value, text in [
 			("none", "None"),
 			("1digit", "(0-9)"),
@@ -185,11 +194,11 @@ class UsernameGenerator:
 				text=text,
 				variable=self.number_var,
 				value=value
-			).pack(anchor=tk.W)
+			).pack(anchor="w")
 
 		# Setup generation size options
 		size_frame: ttk.LabelFrame = ttk.LabelFrame(main_frame, text="Generation Size")
-		size_frame.grid(row=0, column=2, sticky=tk.W, padx=5, pady=5)
+		size_frame.grid(row=0, column=2, sticky="w", padx=5, pady=5)
 		for value, text in [
 			("10", "Quick    (10)"),
 			("25", "Light    (25)"),
@@ -202,7 +211,7 @@ class UsernameGenerator:
 				text=text,
 				variable=self.count_var,
 				value=value
-			).pack(anchor=tk.W)
+			).pack(anchor="w")
 
 		# Add generation button
 		gen_button: ttk.Button = ttk.Button(
@@ -232,7 +241,7 @@ class UsernameGenerator:
 			text="Save log to file",
 			variable=self.log_var,
 			command=self._toggle_file_logging
-		).grid(row=3, column=0, columnspan=3, sticky=tk.W, padx=5)
+		).grid(row=3, column=0, columnspan=3, sticky="w", padx=5)
 
 	def setup_treeview(self, parent_frame: ttk.Frame) -> None:
 		"""
@@ -263,7 +272,7 @@ class UsernameGenerator:
 		# Add vertical scrollbar
 		scrollbar = ttk.Scrollbar(
 			table_frame,
-			orient=tk.VERTICAL,
+			orient="vertical",
 			command=self.tree.yview
 		)
 		scrollbar.grid(row=0, column=1, sticky="ns")
@@ -286,7 +295,7 @@ class UsernameGenerator:
 		# Create log display Text widget
 		self.log_output = tk.Text(
 			log_frame,
-			wrap=tk.WORD,
+			wrap="word",
 			height=10,
 			bg="white",
 			fg="black",
@@ -301,7 +310,7 @@ class UsernameGenerator:
 		# Add vertical scrollbar
 		scrollbar = ttk.Scrollbar(
 			log_frame,
-			orient=tk.VERTICAL,
+			orient="vertical",
 			command=self.log_output.yview
 		)
 		scrollbar.grid(row=0, column=1, sticky="ns")
@@ -330,10 +339,11 @@ class UsernameGenerator:
 			logger.addHandler(self._file_handler)
 			logger.info("File logging enabled: ascii_username_generator.log")
 		else:
-			if hasattr(self, "_file_handler"):
-				logger.removeHandler(self._file_handler)
-				self._file_handler.close()
-				del self._file_handler
+			if self._file_handler is not None:
+				handler = self._file_handler
+				logger.removeHandler(handler)
+				handler.close()
+				self._file_handler = None
 
 	def start_generation_thread(self) -> None:
 		"""
@@ -403,7 +413,8 @@ class UsernameGenerator:
 		valid_words = [word for word in words if self.is_valid_word(word)]
 		return self.finalize_username(random.choice(valid_words))
 
-	def get_words(self, lang_code: str) -> list[str]:
+	@staticmethod
+	def get_words(lang_code: str) -> list[str]:
 		"""
 		Retrieve valid words from WordNet for specified language.
 
@@ -424,7 +435,8 @@ class UsernameGenerator:
 			logger.warning("Failed to fetch words for '%s': %s", lang_code, exc)
 		return words
 
-	def is_valid_word(self, word: str, min_len: int = 3) -> bool:
+	@staticmethod
+	def is_valid_word(word: str, min_len: int = 3) -> bool:
 		"""
 		Validate word for username generation.
 
