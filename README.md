@@ -1,4 +1,16 @@
 # ascii-username-generator
+
+[![Link Check](https://github.com/hihipy/ascii-username-generator/actions/workflows/links.yml/badge.svg)](https://github.com/hihipy/ascii-username-generator/actions/workflows/links.yml)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+**Built with**
+
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
+[![NLTK](https://img.shields.io/badge/NLTK-154F5B?style=flat&logoColor=white)](https://www.nltk.org)
+[![better-profanity](https://img.shields.io/badge/better--profanity-C0392B?style=flat&logoColor=white)](https://pypi.org/project/better-profanity/)
+[![pyperclip](https://img.shields.io/badge/pyperclip-607D8B?style=flat&logoColor=white)](https://pypi.org/project/pyperclip/)
+[![Tkinter](https://img.shields.io/badge/Tkinter-FFD43B?style=flat&logo=python&logoColor=black)](https://docs.python.org/3/library/tkinter.html)
+
 A Python app with a GUI for generating unique, ASCII-compliant usernames in multiple languages using WordNet. Features real-time logging, customizable formatting, and clipboard integration.
 
 ## Features
