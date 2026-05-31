@@ -13,6 +13,8 @@
 
 A Python app with a GUI for generating unique, ASCII-compliant usernames in multiple languages using WordNet. It includes live logging, customizable formatting, and clipboard integration.
 
+---
+
 ## Features
 - **Multi-language support:** Generates usernames in 19 languages, including English, Spanish, French, Italian, and more.
 - **Customizable formatting:**
@@ -27,11 +29,15 @@ A Python app with a GUI for generating unique, ASCII-compliant usernames in mult
 - **Profanity filtering:** Built-in filter against inappropriate content.
 - **Thread-safe operation:** Keeps the GUI from freezing during generation.
 
+---
+
 ## Requirements
 Python 3.6+ and the following libraries:
 ```bash
 pip install nltk better-profanity pyperclip
 ```
+
+---
 
 ## Installation
 1. Clone the repository:
@@ -43,6 +49,8 @@ cd ascii-username-generator
 ```bash
 python ascii_username_generator.py
 ```
+
+---
 
 ## Usage
 1. **Start the app:** Open the GUI by running the script.
@@ -56,6 +64,8 @@ python ascii_username_generator.py
    - Click a username to copy it to the clipboard.
    - Progress is shown in the console log window.
 5. **File logging (optional):** Check "Save log to file" to write a detailed log to disk. Uncheck to stop. No file is created unless this is enabled.
+
+---
 
 ## Supported Languages
 Generates usernames from the following languages:
@@ -79,6 +89,8 @@ Generates usernames from the following languages:
 - Danish
 - Lithuanian
 
+---
+
 ## Technical Details
 - **GUI:** Built with Python's Tkinter.
 - **Word source:** Uses NLTK's WordNet database for word generation.
@@ -87,11 +99,15 @@ Generates usernames from the following languages:
 - **Multi-threading:** Keeps the GUI responsive during generation.
 - **Error handling:** Downloads missing NLTK resources automatically and shows plain-language messages.
 
+---
+
 ## Acknowledgments
 - [NLTK](https://www.nltk.org/): WordNet integration
 - [Better-Profanity](https://pypi.org/project/better-profanity/): Profanity filtering
 - [Python's Tkinter](https://docs.python.org/3/library/tkinter.html): GUI framework
 - [Jimpix Username Generator](https://jimpix.co.uk/words/username-generator.php): Tool inspiration
+
+---
 
 ## License
 This project is licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
