@@ -11,15 +11,37 @@ import logging
 import os
 import random
 import warnings
+import zipfile
 import tkinter as tk
 from tkinter import ttk, messagebox
 from threading import Thread
 from typing import cast
 
-import nltk
-import pyperclip
-from nltk.corpus import wordnet
-from better_profanity import profanity
+# nltk 3.10.1 ships an import finder (nltk/inisec.py) that blocks any module
+# resolving to a path beneath the current working directory. It tests with
+# Path.relative_to, so a venv nested under $HOME trips it whenever the process
+# runs from $HOME, even when nothing is shadowing the module. PYTHONSAFEPATH
+# does not help: the check reads the cwd directly rather than sys.path.
+# This must run before nltk is first imported in the process.
+# Revisit once nltk fixes the containment test.
+os.environ["NLTK_DISABLE_IMPORT_SECURITY"] = "1"
+
+# An earlier import in the same interpreter may have installed the finder
+# already, since IPython and Jupyter reuse the process across runs. Strip any
+# live instance so a rerun in an existing session is not still blocked.
+_inisec = sys.modules.get("nltk.inisec")
+if _inisec is not None:
+	_finder_cls = getattr(_inisec, "NLTKSafeImportFinder", None)
+	if _finder_cls is not None:
+		sys.meta_path[:] = [
+			finder for finder in sys.meta_path
+			if not isinstance(finder, _finder_cls)
+		]
+
+import nltk  # noqa: E402
+import pyperclip  # noqa: E402
+from nltk.corpus import wordnet  # noqa: E402
+from better_profanity import profanity  # noqa: E402
 
 # Suppress WordNet-related warnings during runtime
 warnings.filterwarnings(
@@ -101,6 +123,10 @@ class UsernameGenerator:
 		self.log_frame: ttk.Frame = cast(ttk.Frame, cast(object, None))
 		self._file_handler: logging.FileHandler | None = None
 
+		# Per-language word lists, filled on first use. Walking all of WordNet is
+		# expensive and the result does not change during a session.
+		self._word_cache: dict[str, list[str]] = {}
+
 		logger.debug("Ensuring required NLTK data is available...")
 		self.ensure_nltk_data()
 
@@ -135,24 +161,101 @@ class UsernameGenerator:
 		self.create_widgets()
 
 	@staticmethod
+	def _resource_available(resource_path: str) -> bool:
+		"""
+		Report whether NLTK can resolve a corpus by its bare path.
+
+		Args:
+			resource_path (str): NLTK resource path, e.g. "corpora/wordnet".
+
+		Returns:
+			bool: True if nltk.data.find() resolves the path.
+		"""
+		try:
+			nltk.data.find(resource_path)
+			return True
+		except LookupError:
+			return False
+
+	@staticmethod
+	def _unpack_if_zipped(resource_path: str) -> bool:
+		"""
+		Extract <resource>.zip in place when the bare corpus name will not resolve.
+
+		nltk 3.10.1 stopped resolving corpus names through their zip archives, so a
+		corpus the downloader reports as up to date can sit on disk as a zip that
+		nltk.data.find() calls missing. Extracting alongside the archive restores
+		the bare-name lookup. The archives come from NLTK's own download servers.
+
+		Args:
+			resource_path (str): NLTK resource path, e.g. "corpora/wordnet".
+
+		Returns:
+			bool: True if an archive was found and extracted.
+		"""
+		try:
+			zip_path = str(nltk.data.find(resource_path + ".zip"))
+		except LookupError:
+			return False
+
+		target_dir = os.path.dirname(zip_path)
+		logger.info("Unpacking %s into %s", os.path.basename(zip_path), target_dir)
+		try:
+			with zipfile.ZipFile(zip_path) as archive:
+				archive.extractall(target_dir)
+		except (OSError, zipfile.BadZipFile) as exc:
+			logger.warning("Could not extract %s: %s", zip_path, exc)
+			return False
+		return True
+
+	@staticmethod
 	def ensure_nltk_data() -> None:
 		"""
 		Ensure required NLTK data resources are available.
-		Downloads missing resources if necessary and configures NLTK data path.
+
+		For each resource, tries in order: resolve it, unpack a zip already on
+		disk, download it, unpack what was downloaded. Logs an error rather than
+		raising if a resource is still unreachable, so the GUI still opens.
 		"""
 		nltk_data_path: str = os.path.join(os.path.expanduser("~"), "nltk_data")
 		if nltk_data_path not in nltk.data.path:
 			nltk.data.path.append(nltk_data_path)
 			logger.info("Added NLTK data path: %s", nltk_data_path)
 
-		resources: dict[str, str] = {"wordnet": "corpora/wordnet", "omw-1.4": "corpora/omw-1.4"}
+		# omw-2.0 is what synset.lemmas(lang=...) reads under nltk 3.10.1.
+		# An older omw-1.4 on disk is harmless but is not a substitute.
+		resources: dict[str, str] = {
+			"wordnet": "corpora/wordnet",
+			"omw-2.0": "corpora/omw-2.0",
+		}
+
 		for resource, path in resources.items():
+			if UsernameGenerator._resource_available(path):
+				logger.info("Resource '%s' already available.", resource)
+				continue
+
+			if UsernameGenerator._unpack_if_zipped(path):
+				if UsernameGenerator._resource_available(path):
+					logger.info("Resource '%s' restored from local archive.", resource)
+					continue
+
+			logger.info("Downloading missing resource: %s", resource)
 			try:
-				nltk.data.find(path)
-				logger.info("Resource '%s' already downloaded.", resource)
-			except LookupError:
-				logger.info("Downloading missing resource: %s", resource)
 				nltk.download(resource, download_dir=nltk_data_path)
+			except Exception as exc:
+				logger.error("Download of '%s' failed: %s", resource, exc)
+				continue
+
+			if UsernameGenerator._resource_available(path):
+				continue
+			if UsernameGenerator._unpack_if_zipped(path):
+				if UsernameGenerator._resource_available(path):
+					continue
+
+			logger.error(
+				"Resource '%s' is still unavailable after download and unpack. "
+				"Languages relying on it will be skipped.", resource
+			)
 
 	def create_widgets(self) -> None:
 		"""
@@ -381,25 +484,44 @@ class UsernameGenerator:
 		usernames = []
 		total = int(self.count_var.get())
 
+		# Languages that yield nothing usable are dropped for the rest of the run,
+		# so one empty corpus cannot consume every attempt.
+		available_codes = list(self.language_codes)
+
 		for i in range(total):
+			if not available_codes:
+				logger.error("No language has usable words. Stopping generation.")
+				break
+
 			message = f"Generating username {i + 1}/{total}..."
 			logger.info(message)
 			self.log_output.insert(tk.END, f"{message}\n")
 			self.log_output.see(tk.END)
 
-			lang_code = random.choice(self.language_codes)
+			lang_code = random.choice(available_codes)
 			username = self.generate_ascii_username(lang_code)
+			if username is None:
+				available_codes.remove(lang_code)
+				continue
 			usernames.append((username, self.language_names.get(lang_code, lang_code)))
 
 		usernames.sort(key=lambda x: x[0])
 		for username, lang_name in usernames:
 			self.tree.insert("", "end", values=(username, lang_name))
 
-		logger.info("Username generation completed successfully.")
-		self.log_output.insert(tk.END, "Username generation completed successfully.\n")
+		if len(usernames) < total:
+			shortfall = (
+				f"Generated {len(usernames)} of {total} requested; "
+				"some languages had no usable words."
+			)
+			logger.warning(shortfall)
+			self.log_output.insert(tk.END, f"{shortfall}\n")
+		else:
+			logger.info("Username generation completed successfully.")
+			self.log_output.insert(tk.END, "Username generation completed successfully.\n")
 		self.log_output.see(tk.END)
 
-	def generate_ascii_username(self, lang_code: str) -> str:
+	def generate_ascii_username(self, lang_code: str) -> str | None:
 		"""
 		Generate a single ASCII-compliant username for specified language.
 
@@ -407,10 +529,23 @@ class UsernameGenerator:
 			lang_code (str): The language code to use for word selection.
 
 		Returns:
-			str: A formatted username string.
+			str | None: A formatted username, or None if the language yields no
+			usable words.
 		"""
-		words = self.get_words(lang_code)
-		valid_words = [word for word in words if self.is_valid_word(word)]
+		valid_words = self._word_cache.get(lang_code)
+		if valid_words is None:
+			words = self.get_words(lang_code)
+			valid_words = [word for word in words if self.is_valid_word(word)]
+			self._word_cache[lang_code] = valid_words
+			logger.debug(
+				"Cached %d usable words for '%s' (from %d lemmas).",
+				len(valid_words), lang_code, len(words)
+			)
+
+		if not valid_words:
+			logger.warning("No usable words for '%s'; dropping it from this run.", lang_code)
+			return None
+
 		return self.finalize_username(random.choice(valid_words))
 
 	@staticmethod
