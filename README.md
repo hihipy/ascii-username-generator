@@ -8,7 +8,7 @@
 [![better-profanity](https://img.shields.io/badge/better--profanity-C0392B?style=flat&logoColor=white)](https://pypi.org/project/better-profanity/)
 [![NLTK](https://img.shields.io/badge/NLTK-154F5B?style=flat&logoColor=white)](https://www.nltk.org)
 [![pyperclip](https://img.shields.io/badge/pyperclip-607D8B?style=flat&logoColor=white)](https://pypi.org/project/pyperclip/)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://python.org)
 [![Tkinter](https://img.shields.io/badge/Tkinter-FFD43B?style=flat&logo=python&logoColor=black)](https://docs.python.org/3/library/tkinter.html)
 
 A Python app with a GUI for generating unique, ASCII-compliant usernames in multiple languages using WordNet. It includes live logging, customizable formatting, and clipboard integration.
